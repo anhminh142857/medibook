@@ -1,3 +1,7 @@
+/* ==============================
+   Bố cục chung
+   ============================== */
+
 .app-layout {
   display: flex;
   flex-direction: column;
@@ -6,37 +10,8 @@
 
 .app-content {
   flex: 1;
+  min-width: 0;
   padding-bottom: 32px;
-}
-
-.medibook-navbar {
-  box-shadow: 0 2px 10px rgba(23, 43, 77, 0.12);
-}
-
-.medibook-navbar .navbar-brand {
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-.medibook-navbar .nav-link {
-  padding-right: 10px;
-  padding-left: 10px;
-  color: rgba(255, 255, 255, 0.88);
-  border-radius: 6px;
-}
-
-.medibook-navbar .nav-link:hover,
-.medibook-navbar .nav-link:focus,
-.medibook-navbar .nav-link.active {
-  color: #fff;
-  background-color: rgba(255, 255, 255, 0.14);
-}
-
-.medibook-navbar .nav-user {
-  max-width: 200px;
-  color: #fff;
-  font-size: 0.9rem;
-  overflow-wrap: anywhere;
 }
 
 .app-content h1,
@@ -50,7 +25,7 @@
 
 .app-content .card {
   border: 1px solid #e3e8ef;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .app-content .card-body {
@@ -82,7 +57,48 @@
   font-size: 0.9rem;
 }
 
-@media (max-width: 991.98px) {
+
+/* ==============================
+   Thanh điều hướng
+   ============================== */
+
+.medibook-navbar {
+  box-shadow: 0 2px 10px rgba(23, 43, 77, 0.12);
+}
+
+.medibook-navbar .navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.medibook-navbar .navbar-nav {
+  gap: 6px;
+}
+
+.medibook-navbar .nav-link {
+  padding: 8px 14px;
+  color: rgba(255, 255, 255, 0.88);
+  border-radius: 8px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.medibook-navbar .nav-link:hover,
+.medibook-navbar .nav-link:focus,
+.medibook-navbar .nav-link.active {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.medibook-navbar .nav-user {
+  max-width: 200px;
+  color: #fff;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1199.98px) {
   .medibook-navbar .navbar-collapse {
     padding-top: 12px;
     padding-bottom: 8px;
@@ -98,13 +114,21 @@
   }
 }
 
-/* Giao dien cong khai MediBook */
+
+/* ==============================
+   Trang chủ và danh mục công khai
+   ============================== */
 
 .medibook-hero {
   padding: 44px;
   border: 1px solid #dce8fb;
   border-radius: 24px;
-  background: linear-gradient(125deg, #edf5ff 0%, #ffffff 65%, #eaf8f6 100%);
+  background: linear-gradient(
+    125deg,
+    #edf5ff 0%,
+    #ffffff 65%,
+    #eaf8f6 100%
+  );
 }
 
 .hero-eyebrow {
@@ -147,7 +171,9 @@
 }
 
 .catalog-card {
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .catalog-card:hover {
@@ -215,8 +241,224 @@
   }
 }
 
+
+/* ==============================
+   Hai trang quản trị:
+   Chuyên khoa và bác sĩ
+
+   Nhận diện theo ID ô nhập có sẵn.
+   Không ảnh hưởng các trang khác.
+   ============================== */
+
+main.container:has(#specialty-name),
+main.container:has(#doctor-full-name) {
+  width: 100%;
+  max-width: 1600px;
+  padding-right: 24px;
+  padding-left: 24px;
+}
+
+main:has(#specialty-name) > .d-flex,
+main:has(#doctor-full-name) > .d-flex {
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+main:has(#specialty-name) .row > *,
+main:has(#doctor-full-name) .row > * {
+  min-width: 0;
+}
+
+main:has(#specialty-name) .card,
+main:has(#doctor-full-name) .card {
+  overflow: hidden;
+}
+
+main:has(#specialty-name) .form-label,
+main:has(#doctor-full-name) .form-label {
+  font-weight: 500;
+  color: #334155;
+}
+
+main:has(#specialty-name) textarea,
+main:has(#doctor-full-name) textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+main:has(#specialty-name) form .d-flex,
+main:has(#doctor-full-name) form .d-flex {
+  flex-wrap: wrap;
+}
+
+main:has(#specialty-name) .table-responsive,
+main:has(#doctor-full-name) .table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+main:has(#specialty-name) .table,
+main:has(#doctor-full-name) .table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+main:has(#specialty-name) .table thead th,
+main:has(#doctor-full-name) .table thead th {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  color: #475569;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+main:has(#specialty-name) .table tbody td,
+main:has(#doctor-full-name) .table tbody td {
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-color: #edf0f4;
+  line-height: 1.6;
+}
+
+main:has(#specialty-name) .table tbody tr:last-child td,
+main:has(#doctor-full-name) .table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+main:has(#specialty-name) .table td,
+main:has(#doctor-full-name) .table td {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+main:has(#specialty-name) .table .btn,
+main:has(#doctor-full-name) .table .btn {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 7px;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* Bảng chuyên khoa */
+
+main:has(#specialty-name) .table {
+  min-width: 660px;
+}
+
+main:has(#specialty-name) .table th:nth-child(1) {
+  width: 60px;
+}
+
+main:has(#specialty-name) .table th:nth-child(2) {
+  width: 180px;
+}
+
+main:has(#specialty-name) .table th:nth-child(4) {
+  width: 160px;
+}
+
+main:has(#specialty-name) .table td:last-child {
+  white-space: nowrap;
+}
+
+/* Bảng bác sĩ */
+
+main:has(#doctor-full-name) .table {
+  min-width: 860px;
+}
+
+main:has(#doctor-full-name) .table th:nth-child(1) {
+  width: 56px;
+}
+
+main:has(#doctor-full-name) .table th:nth-child(2) {
+  width: 200px;
+}
+
+main:has(#doctor-full-name) .table th:nth-child(3) {
+  width: 145px;
+}
+
+main:has(#doctor-full-name) .table th:nth-child(5) {
+  width: 235px;
+}
+
+/* Ghi đè text-break để mô tả không bị bẻ từ tùy tiện. */
+
+main:has(#doctor-full-name) .table td:nth-child(4) {
+  word-break: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
+main:has(#doctor-full-name) .table td:last-child > .d-flex {
+  flex-wrap: nowrap !important;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px !important;
+}
+
+main:has(#doctor-full-name) .table td:last-child .btn {
+  flex-shrink: 0;
+}
+
+main:has(#doctor-full-name) .table td:nth-child(2) .small {
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+/* Form nhỏ hơn, danh sách rộng hơn trên màn hình lớn. */
+
+@media (min-width: 1200px) {
+  main:has(#specialty-name) .row.g-4 > .col-lg-4,
+  main:has(#doctor-full-name) .row.g-4 > .col-lg-4 {
+    flex: 0 0 28%;
+    width: 28%;
+  }
+
+  main:has(#specialty-name) .row.g-4 > .col-lg-8,
+  main:has(#doctor-full-name) .row.g-4 > .col-lg-8 {
+    flex: 0 0 72%;
+    width: 72%;
+  }
+}
+
+/* Màn hình vừa: form ở trên, bảng ở dưới. */
+
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  main:has(#specialty-name) .row.g-4 > .col-lg-4,
+  main:has(#specialty-name) .row.g-4 > .col-lg-8,
+  main:has(#doctor-full-name) .row.g-4 > .col-lg-4,
+  main:has(#doctor-full-name) .row.g-4 > .col-lg-8 {
+    flex: 0 0 100%;
+    width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  main.container:has(#specialty-name),
+  main.container:has(#doctor-full-name) {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  main:has(#specialty-name) .card-body,
+  main:has(#doctor-full-name) .card-body {
+    padding: 16px;
+  }
+}
+
+
+/* ==============================
+   Giảm chuyển động khi được yêu cầu
+   ============================== */
+
 @media (prefers-reduced-motion: reduce) {
-  .catalog-card {
+  .catalog-card,
+  .medibook-navbar .nav-link {
     transition: none;
   }
 
