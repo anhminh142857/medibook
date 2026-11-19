@@ -466,3 +466,163 @@ main:has(#doctor-full-name) .table td:nth-child(2) .small {
     transform: none;
   }
 }
+
+/* Trợ lý MediBook */
+
+.medibook-ai-toggle {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1050;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.medibook-ai-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 86px;
+  z-index: 1050;
+
+  display: flex;
+  flex-direction: column;
+
+  width: min(420px, calc(100vw - 32px));
+  height: min(650px, calc(100dvh - 112px));
+
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #dce5f0;
+  border-radius: 18px;
+  box-shadow: 0 18px 60px rgba(23, 43, 77, 0.2);
+}
+
+.medibook-ai-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 16px 18px;
+  background: #0d6efd;
+  color: #fff;
+}
+
+.medibook-ai-panel .medibook-ai-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.medibook-ai-header p {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8rem;
+}
+
+.medibook-ai-notice {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  background: #fff8e6;
+  border-bottom: 1px solid #f2e6c5;
+  color: #765c1f;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.medibook-ai-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  background: #f6f8fc;
+}
+
+.medibook-ai-message {
+  width: fit-content;
+  max-width: 94%;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.medibook-ai-message-label {
+  margin-bottom: 4px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.medibook-ai-message-assistant {
+  margin-right: auto;
+  background: #fff;
+  border: 1px solid #e3e8ef;
+  color: #263b54;
+  border-bottom-left-radius: 4px;
+}
+
+.medibook-ai-message-user {
+  margin-left: auto;
+  background: #0d6efd;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.medibook-ai-loading {
+  padding: 8px 0;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.medibook-ai-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border-top: 1px solid #edf0f5;
+}
+
+.medibook-ai-suggestions .btn {
+  border-radius: 12px;
+  text-align: left;
+  white-space: normal;
+  font-size: 0.75rem;
+}
+
+.medibook-ai-form {
+  flex-shrink: 0;
+  padding: 12px 14px;
+  border-top: 1px solid #edf0f5;
+  background: #fff;
+}
+
+.medibook-ai-form textarea {
+  min-height: 64px;
+  max-height: 110px;
+  resize: vertical;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 575.98px) {
+  .medibook-ai-toggle {
+    right: 12px;
+    bottom: 12px;
+    padding: 10px 16px;
+  }
+
+  .medibook-ai-panel {
+    right: 12px;
+    bottom: 70px;
+    width: calc(100vw - 24px);
+    height: min(620px, calc(100dvh - 90px));
+  }
+}

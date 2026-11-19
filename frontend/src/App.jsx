@@ -7,6 +7,7 @@ import {
 
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AiAssistant from "./components/AiAssistant";
 
 import Home from "./pages/Home";
 import Specialties from "./pages/Specialties";
@@ -140,6 +141,8 @@ function App() {
         <footer className="app-footer">
           MediBook — Hệ thống đặt lịch khám bệnh
         </footer>
+
+        <AiAssistant />
       </div>
     </BrowserRouter>
   );
