@@ -1,10 +1,18 @@
-import { useEffect, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
 
 import {
   cancelAppointment,
   getMyAppointments,
 } from "../api/appointmentApi";
+import { getSepayPaymentsForAppointment } from "../api/sepayPaymentApi";
+import SepayPaymentPanel from "../components/SepayPaymentPanel";
 
 const STATUS_LABELS = {
   PENDING: "Chờ xử lý",
@@ -34,8 +42,11 @@ function formatTime(value) {
   return value ? value.slice(0, 5) : "—";
 }
 
-function canCancel(appointment) {
+function canCancel(appointment, payments) {
   if (appointment.status !== "PENDING") return false;
+  if (!Array.isArray(payments)) return false;
+  if (payments.some((payment) => payment.requiresReview)) return false;
+  if (payments.some((payment) => payment.status === "SUCCESS")) return false;
 
   if (!appointment.slotDate || !appointment.startTime) return false;
 
@@ -48,11 +59,23 @@ function canCancel(appointment) {
 
 export default function MyAppointments() {
   const [appointments, setAppointments] = useState([]);
+  const [paymentsByAppointment, setPaymentsByAppointment] = useState({});
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
+  const [paymentAppointmentId, setPaymentAppointmentId] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [now, setNow] = useState(0);
+  const loadControllerRef = useRef(null);
+
+  useEffect(() => {
+    const updateTime = () => setNow(Date.now());
+    updateTime();
+    const timer = window.setInterval(updateTime, 15000);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!message) return;
@@ -67,16 +90,29 @@ export default function MyAppointments() {
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
+    loadControllerRef.current = controller;
 
     async function loadAppointments() {
       setLoading(true);
       setError("");
+      setAppointments([]);
+      setPaymentsByAppointment({});
 
       try {
         const data = await getMyAppointments(controller.signal);
+        const paymentEntries = await Promise.all(
+          data.map(async (appointment) => {
+            const payments = await getSepayPaymentsForAppointment(
+              appointment.id,
+              controller.signal
+            );
+            return [String(appointment.id), payments];
+          })
+        );
 
         if (active) {
           setAppointments(data);
+          setPaymentsByAppointment(Object.fromEntries(paymentEntries));
         }
       } catch (err) {
         if (active && err.name !== "AbortError") {
@@ -94,8 +130,66 @@ export default function MyAppointments() {
     return () => {
       active = false;
       controller.abort();
+      if (loadControllerRef.current === controller) {
+        loadControllerRef.current = null;
+      }
     };
   }, [reloadKey]);
+
+  useEffect(() => {
+    function handleAuthChange() {
+      loadControllerRef.current?.abort();
+      loadControllerRef.current = null;
+      setAppointments([]);
+      setPaymentsByAppointment({});
+      setPaymentAppointmentId(null);
+      setMessage("");
+      setError("");
+
+      const token = localStorage.getItem("token");
+
+      if (
+        token &&
+        token.trim() !== "" &&
+        token !== "null" &&
+        token !== "undefined"
+      ) {
+        setLoading(true);
+        setReloadKey((current) => current + 1);
+      } else {
+        setLoading(false);
+        setError("Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.");
+      }
+    }
+
+    function handleStorage(event) {
+      if (
+        event.key === "token" ||
+        event.key === "user" ||
+        event.key === null
+      ) {
+        handleAuthChange();
+      }
+    }
+
+    window.addEventListener("auth-changed", handleAuthChange);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("auth-changed", handleAuthChange);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  const updateAppointmentPayments = useCallback(
+    (appointmentId, payments) => {
+      setPaymentsByAppointment((current) => ({
+        ...current,
+        [String(appointmentId)]: payments,
+      }));
+    },
+    []
+  );
 
   async function handleCancel(appointment) {
     const confirmed = window.confirm(
@@ -116,6 +210,7 @@ export default function MyAppointments() {
           item.id === updated.id ? updated : item
         )
       );
+      setPaymentAppointmentId(null);
 
       setMessage(`Đã hủy lịch hẹn #${updated.id}. Khung giờ đã được mở lại.`);
     } catch (err) {
@@ -128,6 +223,66 @@ export default function MyAppointments() {
   const activeAppointments = appointments.filter(
     (appointment) => appointment.status !== "CANCELLED"
   );
+
+  function paymentSummary(appointment, payments) {
+    if (payments.some((payment) => payment.requiresReview)) {
+      if (payments.some((payment) => payment.status === "SUCCESS")) {
+        return "Đã thanh toán · Cần phòng khám kiểm tra";
+      }
+      return "Cần liên hệ phòng khám";
+    }
+
+    if (
+      payments.some(
+        (payment) =>
+          payment.status === "SUCCESS" && payment.provider === "SEPAY"
+      )
+    ) {
+      return appointment.status === "PENDING"
+        ? "Đã thanh toán SePay · Chờ bác sĩ xác nhận"
+        : "Đã thanh toán SePay";
+    }
+
+    if (payments.some((payment) => payment.status === "SUCCESS")) {
+      return "Đã thanh toán qua cổng khác · Liên hệ phòng khám";
+    }
+
+    if (appointment.status === "CANCELLED") {
+      return "Lịch đã hủy · Không tiếp tục chuyển khoản";
+    }
+
+    const activePendingPayment = payments.find((payment) => {
+      const expiry = Date.parse(payment.expiresAt);
+      return (
+        payment.status === "PENDING" &&
+        Number.isFinite(expiry) &&
+        expiry > now
+      );
+    });
+
+    if (activePendingPayment) {
+      return activePendingPayment.provider === "SEPAY"
+        ? "Chờ thanh toán SePay"
+        : `Giao dịch ${activePendingPayment.provider} đang chờ`;
+    }
+
+    if (
+      payments.some(
+        (payment) =>
+          payment.status === "PENDING" &&
+          Number.isFinite(Date.parse(payment.expiresAt)) &&
+          Date.parse(payment.expiresAt) <= now
+      )
+    ) {
+      return "Giao dịch đã hết hạn";
+    }
+
+    if (payments.some((payment) => payment.status === "FAILED")) {
+      return "Giao dịch thất bại";
+    }
+
+    return "Chưa thanh toán";
+  }
 
   return (
     <main className="container py-4">
@@ -220,57 +375,102 @@ export default function MyAppointments() {
                     <th>Bác sĩ</th>
                     <th>Ngày khám</th>
                     <th>Khung giờ</th>
-                    <th>Trạng thái</th>
+                    <th>Trạng thái lịch</th>
+                    <th>Thanh toán</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {appointments.map((appointment) => (
-                    <tr key={appointment.id}>
-                      <td>#{appointment.id}</td>
+                    <Fragment key={appointment.id}>
+                      <tr>
+                        <td>#{appointment.id}</td>
 
-                      <td>{appointment.doctorName}</td>
+                        <td>{appointment.doctorName}</td>
 
-                      <td className="text-nowrap">
-                        {formatDate(appointment.slotDate)}
-                      </td>
+                        <td className="text-nowrap">
+                          {formatDate(appointment.slotDate)}
+                        </td>
 
-                      <td className="text-nowrap">
-                        {formatTime(appointment.startTime)}
-                        {" – "}
-                        {formatTime(appointment.endTime)}
-                      </td>
+                        <td className="text-nowrap">
+                          {formatTime(appointment.startTime)}
+                          {" – "}
+                          {formatTime(appointment.endTime)}
+                        </td>
 
-                      <td>
-                        <span
-                          className={`badge ${
-                            STATUS_CLASSES[appointment.status] ||
-                            "bg-secondary"
-                          }`}
-                        >
-                          {STATUS_LABELS[appointment.status] ||
-                            appointment.status}
-                        </span>
-                      </td>
-
-                      <td>
-                        {canCancel(appointment) ? (
-                          <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
-                            disabled={cancellingId !== null}
-                            onClick={() => handleCancel(appointment)}
+                        <td>
+                          <span
+                            className={`badge ${
+                              STATUS_CLASSES[appointment.status] ||
+                              "bg-secondary"
+                            }`}
                           >
-                            {cancellingId === appointment.id
-                              ? "Đang hủy..."
-                              : "Hủy lịch"}
-                          </button>
-                        ) : (
-                          <span className="text-muted">—</span>
-                        )}
-                      </td>
-                    </tr>
+                            {STATUS_LABELS[appointment.status] ||
+                              appointment.status}
+                          </span>
+                        </td>
+
+                        <td>
+                          {paymentSummary(
+                            appointment,
+                            paymentsByAppointment[String(appointment.id)]
+                          )}
+                        </td>
+
+                        <td>
+                          <div className="d-flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-outline-primary btn-sm"
+                              disabled={cancellingId !== null}
+                              onClick={() =>
+                                setPaymentAppointmentId((current) =>
+                                  current === appointment.id
+                                    ? null
+                                    : appointment.id
+                                )
+                              }
+                            >
+                              {paymentAppointmentId === appointment.id
+                                ? "Đóng thanh toán"
+                                : "Thanh toán / Chi tiết"}
+                            </button>
+
+                            {canCancel(
+                              appointment,
+                              paymentsByAppointment[String(appointment.id)]
+                            ) ? (
+                              <button
+                                type="button"
+                                className="btn btn-outline-danger btn-sm"
+                                disabled={cancellingId !== null}
+                                onClick={() => handleCancel(appointment)}
+                              >
+                                {cancellingId === appointment.id
+                                  ? "Đang hủy..."
+                                  : "Hủy lịch"}
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                      {paymentAppointmentId === appointment.id && (
+                        <tr>
+                          <td colSpan={7}>
+                            <SepayPaymentPanel
+                              appointment={appointment}
+                              initialPayments={
+                                paymentsByAppointment[
+                                  String(appointment.id)
+                                ]
+                              }
+                              onPaymentsChange={updateAppointmentPayments}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

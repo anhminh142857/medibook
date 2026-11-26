@@ -46,35 +46,44 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+
                 .cors(cors -> cors
                         .configurationSource(corsConfigurationSource())
                 )
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, exception) -> {
-                            response.setStatus(
-                                    HttpServletResponse.SC_UNAUTHORIZED
-                            );
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write(
-                                    "{\"message\":\"Vui long dang nhap.\"}"
-                            );
-                        })
-                        .accessDeniedHandler((request, response, exception) -> {
-                            response.setStatus(
-                                    HttpServletResponse.SC_FORBIDDEN
-                            );
-                            response.setContentType("application/json");
-                            response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write(
-                                    "{\"message\":\"Ban khong co quyen thuc hien thao tac nay.\"}"
-                            );
-                        })
+                        .authenticationEntryPoint(
+                                (request, response, exception) -> {
+                                    response.setStatus(
+                                            HttpServletResponse.SC_UNAUTHORIZED
+                                    );
+                                    response.setContentType("application/json");
+                                    response.setCharacterEncoding("UTF-8");
+                                    response.getWriter().write(
+                                            "{\"message\":\"Vui long dang nhap.\"}"
+                                    );
+                                }
+                        )
+                        .accessDeniedHandler(
+                                (request, response, exception) -> {
+                                    response.setStatus(
+                                            HttpServletResponse.SC_FORBIDDEN
+                                    );
+                                    response.setContentType("application/json");
+                                    response.setCharacterEncoding("UTF-8");
+                                    response.getWriter().write(
+                                            "{\"message\":\"Ban khong co quyen thuc hien thao tac nay.\"}"
+                                    );
+                                }
+                        )
                 )
+
                 .authorizeHttpRequests(auth -> auth
+
                         .dispatcherTypeMatchers(
                                 DispatcherType.ERROR
                         ).permitAll()
@@ -84,6 +93,7 @@ public class SecurityConfig {
                                 "/**"
                         ).permitAll()
 
+                        // Dang ky va dang nhap.
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/auth/register",
@@ -91,12 +101,14 @@ public class SecurityConfig {
                                 "/api/auth/google"
                         ).permitAll()
 
+                        // Swagger / OpenAPI.
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
 
+                        // Danh muc cong khai.
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/specialties",
@@ -104,6 +116,7 @@ public class SecurityConfig {
                                 "/api/appointment-slots"
                         ).permitAll()
 
+                        // Quan ly danh muc.
                         .requestMatchers(
                                 "/api/specialties",
                                 "/api/specialties/**",
@@ -113,27 +126,66 @@ public class SecurityConfig {
                                 "/api/appointment-slots/**"
                         ).hasRole("ADMIN")
 
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // API quan tri.
+                        .requestMatchers(
+                                "/api/admin/**"
+                        ).hasRole("ADMIN")
 
-                        .requestMatchers("/api/doctor/**").hasRole("DOCTOR")
+                        // API bac si.
+                        .requestMatchers(
+                                "/api/doctor/**"
+                        ).hasRole("DOCTOR")
 
+                        // Benh nhan xem lich hen cua minh.
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/appointments/me"
                         ).hasRole("PATIENT")
 
+                        // Benh nhan tao va huy lich hen.
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/appointments",
                                 "/api/appointments/*/cancel"
                         ).hasRole("PATIENT")
 
+                        // Chan cac duong dan lich hen chua khai bao.
                         .requestMatchers(
                                 "/api/appointments/**"
                         ).denyAll()
 
+                        // Webhook tu kiem tra API Key trong controller.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/payments/sepay/webhook"
+                        ).permitAll()
+
+                        // Benh nhan tao thanh toan SePay.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/payments/sepay/appointments/*"
+                        ).hasRole("PATIENT")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/payments/sepay/appointments/*"
+                        ).hasRole("PATIENT")
+
+                        // Benh nhan xem giao dich SePay cua minh.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/payments/sepay/transactions/*"
+                        ).hasRole("PATIENT")
+
+                        // Chan cac duong dan SePay chua khai bao.
+                        .requestMatchers(
+                                "/api/payments/sepay/**"
+                        ).denyAll()
+
+                        // Cac API con lai yeu cau dang nhap.
                         .anyRequest().authenticated()
                 )
+
                 .addFilterBefore(
                         jwtFilter,
                         UsernamePasswordAuthenticationFilter.class
@@ -162,7 +214,11 @@ public class SecurityConfig {
         );
 
         configuration.setAllowedHeaders(
-                List.of("Authorization", "Content-Type", "Accept")
+                List.of(
+                        "Authorization",
+                        "Content-Type",
+                        "Accept"
+                )
         );
 
         configuration.setAllowCredentials(false);
@@ -170,7 +226,10 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
 
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
 
         return source;
     }

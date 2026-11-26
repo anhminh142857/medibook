@@ -15,9 +15,12 @@ import com.medibook.backend.dto.AppointmentRequest;
 import com.medibook.backend.dto.AppointmentResponse;
 import com.medibook.backend.entity.Appointment;
 import com.medibook.backend.entity.AppointmentSlot;
+import com.medibook.backend.entity.PaymentStatus;
+import com.medibook.backend.entity.PaymentTransaction;
 import com.medibook.backend.entity.User;
 import com.medibook.backend.repository.AppointmentRepository;
 import com.medibook.backend.repository.AppointmentSlotRepository;
+import com.medibook.backend.repository.PaymentTransactionRepository;
 import com.medibook.backend.repository.UserRepository;
 
 @Service
@@ -34,17 +37,20 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentSlotRepository appointmentSlotRepository;
+    private final PaymentTransactionRepository paymentRepository;
     private final UserRepository userRepository;
     private final EmailNotificationService emailNotificationService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             AppointmentSlotRepository appointmentSlotRepository,
+            PaymentTransactionRepository paymentRepository,
             UserRepository userRepository,
             EmailNotificationService emailNotificationService
     ) {
         this.appointmentRepository = appointmentRepository;
         this.appointmentSlotRepository = appointmentSlotRepository;
+        this.paymentRepository = paymentRepository;
         this.userRepository = userRepository;
         this.emailNotificationService = emailNotificationService;
     }
@@ -177,6 +183,29 @@ public class AppointmentService {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Chỉ có thể hủy lịch hẹn đang chờ xử lý."
+            );
+        }
+
+        var payments = paymentRepository
+                .findAllByAppointment_IdOrderByCreatedAtDescIdDesc(
+                        appointmentId
+                );
+
+        if (payments.stream().anyMatch(
+                PaymentTransaction::isRequiresReview
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Giao dịch cần phòng khám kiểm tra. Vui lòng liên hệ phòng khám; hệ thống không tự xử lý hoàn tiền."
+            );
+        }
+
+        if (payments.stream().anyMatch(
+                payment -> payment.getStatus() == PaymentStatus.SUCCESS
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Lịch đã có giao dịch thanh toán thành công. Vui lòng liên hệ phòng khám; hệ thống không tự xử lý hoàn tiền."
             );
         }
 

@@ -169,9 +169,9 @@ public class PaymentTransaction {
             );
         }
 
-        if (!"VNPAY".equals(provider)) {
+        if (!"VNPAY".equals(provider) && !"SEPAY".equals(provider)) {
             throw new IllegalStateException(
-                    "Chi ho tro cong thanh toan VNPAY."
+                    "Cong thanh toan khong duoc ho tro."
             );
         }
     }

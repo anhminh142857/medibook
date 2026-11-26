@@ -15,9 +15,12 @@ import com.medibook.backend.dto.AppointmentResponse;
 import com.medibook.backend.entity.Appointment;
 import com.medibook.backend.entity.AppointmentSlot;
 import com.medibook.backend.entity.Doctor;
+import com.medibook.backend.entity.PaymentStatus;
+import com.medibook.backend.entity.PaymentTransaction;
 import com.medibook.backend.entity.User;
 import com.medibook.backend.repository.AppointmentRepository;
 import com.medibook.backend.repository.DoctorRepository;
+import com.medibook.backend.repository.PaymentTransactionRepository;
 
 @Service
 public class DoctorAppointmentService {
@@ -30,15 +33,18 @@ public class DoctorAppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final DoctorRepository doctorRepository;
+    private final PaymentTransactionRepository paymentRepository;
     private final EmailNotificationService emailNotificationService;
 
     public DoctorAppointmentService(
             AppointmentRepository appointmentRepository,
             DoctorRepository doctorRepository,
+            PaymentTransactionRepository paymentRepository,
             EmailNotificationService emailNotificationService
     ) {
         this.appointmentRepository = appointmentRepository;
         this.doctorRepository = doctorRepository;
+        this.paymentRepository = paymentRepository;
         this.emailNotificationService = emailNotificationService;
     }
 
@@ -76,6 +82,33 @@ public class DoctorAppointmentService {
         }
 
         requireBookedSlot(appointment);
+
+        var payments = paymentRepository
+                .findAllByAppointment_IdOrderByCreatedAtDescIdDesc(
+                        appointmentId
+                );
+
+        if (payments.stream().anyMatch(
+                PaymentTransaction::isRequiresReview
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Lịch có giao dịch cần phòng khám kiểm tra. Vui lòng liên hệ phòng khám trước khi xác nhận."
+            );
+        }
+
+        boolean hasValidSepayPayment = payments.stream().anyMatch(
+                payment -> "SEPAY".equals(payment.getProvider())
+                        && payment.getStatus() == PaymentStatus.SUCCESS
+                        && !payment.isRequiresReview()
+        );
+
+        if (!hasValidSepayPayment) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Chỉ xác nhận lịch sau khi thanh toán SePay thành công."
+            );
+        }
 
         appointment.setStatus("CONFIRMED");
 
